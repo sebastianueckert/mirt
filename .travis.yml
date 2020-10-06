@@ -11,11 +11,16 @@ notifications:
     on_success: change
     on_failure: change
 
-r_binary_packages:
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libblas-dev
+
+r_packages:
   - Rcpp
   - RcppArmadillo
   - testthat
   - mgcv
+  - devtools
 
 r_build_args: "--no-build-vignettes"
 r_check_args: "--no-build-vignettes --as-cran"

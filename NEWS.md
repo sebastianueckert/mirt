@@ -1,11 +1,100 @@
+# Changes in mirt 1.33
+
+- Added `gen.difficulty()` to compute the generalized difficulty statistics 
+   described by Ali, Chang, and Anderson (2015) for polytomous response models (suggested by Alexander Freund)
+
+- Added `RMSD_DIF()` to compute marginal effect size measure recently used in PISA anlayses when investigating 
+  'badness-of-fit' DIF effects when using constrained multiple-group models
+
+- `extract.group()` now explicitly requires the group name to be passed rather than the group number (this 
+  is a far more natural route)
+
+- `plot(..., type =)` now supports `'trace'`, `'infotrace'`, `'itemscore'`, and `''` for two-dimensional 
+  models to create faceted graphics
+
+- Added `read.mirt()` function back to package now that `plink` is again available on CRAN
+
+- Syntax input from the `car` package's `lht()` function adopted within `mirt`'s `wald()` function
+  for easier specifications (see examples)
+
+- Better cope with syntax definitions of models in `DIF()`, particularly with the `CONSTRAINB` form
+  (reported by Hao Wu)
+
+- Corrected outer-product summation for `SE.type = 'Fisher'` computation (reported by Felix Zimmer)
+
+- Added `fixedCalib()` function to perform the five fixed-calibration methods describe by Kim (2006)
+
+- Empirical histogram `dentype` convergence tolerance no longer modified (default now the same as the Gaussian
+  `dentype` criteria)
+
+- Fix for GGUMs using model syntax input (was ignoring the slope loading specifications; reported by Ben Listyg)
+
+- fixed `traditional2mirt()` math for gpcm when 5 or more category items are supplied (reported by Aiden Loe)
+
+# Changes in mirt 1.32.1
+
+- OpenMP support added to E-step portion of the package, where number of threads can be 
+  specified via the `mirtCluster()` function argument `omp_threads`. Special thanks to 
+  Matthias von Davier for providing the `omp reduction` code in the `Estep.cpp` file
+
+- Behaviour of `mirt(..., large)` has now been modified, where `large = TRUE` now skips computing
+  the unique response patterns for datasets that likely contain little to no repeated response patterns
+  (suggested by Matthias von Davier). The previous two-step behaviour is now achieved by passing 
+  `large = 'return'`, storing this list object, and passing it back to the `large` input argument 
+
+- Positive/negative sign remove from chi-square components in `residuals(type = 'LD')` 
+  (requested by Cengiz Zopluoglu to help avoid confusion). Sign is still however present in the
+  standardized correlation estimates
+
+- `itemtype = 'rsm'` reported the incorrect information functions due to use of - instead of +
+  from `traditional2mirt()` (reported by Nasser Hasan)
+  
+- column names of the `fscores()` results now correspond to the model syntax definition names instead
+  of the previous F# convention
+
+- fix `method = 'classify'` option in `fscores()` when more than two mixtures are fitted
+  (reported by Lisa Limeri)
+
+- fix bug in `'drop_sequential'` scheme in `DIF()` introduced in the previous 
+  version of mirt due to some internal organization changes (reported by Balal Izanloo)
+
+- allow infit/outfit statistics to be computed for non-Rasch models (suggested by 
+  Alexander Freund for use with GGUMs)
+
+- added `p.adjust` argument to `DRF()` (requested by Keri J. S. Brady)
+
+- support for computation of the ACOV matrix when the variance of the specific 
+  factors are freely estimated in `bfactor()` 
+
+- fix for `invariance = 'free_var'` argument in `multipleGroup()` for multidimensional 
+  models with correlated traits, which previously fixed the correlation parameters 
+  inadvertently (reported by Ruoyi Zhu)
+
+- use proper `mins` internal when using `extract.group()` to keep the original minimum
+  response scoring pattern (reported by Adam Ťápal)
+
+- bugfix for single-group models for `draw_parameters()` (reported by Keri Brady 
+  and @ddueber)
+
+- numeric model specification in `bfactor()` bug patched when intervals were not 
+  1 unit apart due to NA placeholders (reported by Luis Manuel Lozano)
+
+- latent trait/class names now are forced to be different than the data column names 
+  (bug reported by Nathan Carter)
+  
+- fixed `X2*_df` and `PV_Q1*` when missing data pattern resulted in dropped categories
+  (reported by Mac Pank)
+
 # Changes in mirt 1.31
+
+- added `likert2int()` to convert Likert-type character/factor responses to integer data
 
 - `estfun()` gains a `centering` argument to center the scores (contributed by Rudolf Debelak)
 
 - `impute` argument in `itemfit()` and `M2()` have been deprecated in favour of removing data
   row-wise via `na.rm=TRUE`
 
-- Acceptance ratio when using MH samplers now retuned prior to 'Stage 2' during estimation so that 
+- Acceptance ratio when using MH samplers now returned prior to 'Stage 2' during estimation so that 
   these ratios are better behaved. As well, an heuristic improved method for increasing/decreasing
   the acceptance ratios is now implemented
 
@@ -26,6 +115,9 @@
   
 - Fix for `key` variable for nested-logit models when data are collapsed to have equal intervals 
   (reported by Emil Kirkegaard)
+  
+- Added delta method for IRT parameter transformations when using multiple-group models 
+  (reported by Alex Miller)
 
 # Changes in mirt 1.30
 
@@ -90,7 +182,7 @@
 
 - `M2()` function gains a `type` input to distinguish between the univariate-bivariate 
   collapsed M2* statistic and the bivariate only collapsed C2 statistic (Cai and Monro, 2014).
-  C2 can be useful for polyomous items when there are too few degrees of freedom to compute
+  C2 can be useful for polytomous items when there are too few degrees of freedom to compute
   the fully collapsed M2* 
 
 - `multipleGroup()` gains the `dentype` argument to allow for mixture IRT models to be 

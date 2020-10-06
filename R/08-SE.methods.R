@@ -1,6 +1,6 @@
 SE.Numerical <- function(pars, Theta, theta, dentype, itemloc, PrepList, ESTIMATE, constrain, Ls,
                   CUSTOM.IND, specific=NULL, sitems=NULL, EHPrior = NULL, warn, Data, type,
-                  delta, lrPars){
+                  delta, lrPars, omp_threads){
     longpars <- ESTIMATE$longpars
     rlist <- ESTIMATE$rlist
     infological=ESTIMATE$infological
@@ -30,7 +30,7 @@ SE.Numerical <- function(pars, Theta, theta, dentype, itemloc, PrepList, ESTIMAT
                             constrain=constrain,
                             specific=specific, sitems=sitems, CUSTOM.IND=CUSTOM.IND,
                             EHPrior=EHPrior, Data=Data, theta=theta, type=type,
-                            delta = delta, gradient = FALSE)
+                            delta = delta, omp_threads=omp_threads, gradient = FALSE)
     Hess <- matrix(0, length(longpars), length(longpars))
     Hess[est, est] <- -hess
     Hess <- updateHess(h=Hess, L=Ls$L)
@@ -95,11 +95,11 @@ SE.SEM <- function(index, estmat, pars, constrain, Ls, PrepList, list, Theta, th
                 rlist[[g]] <- Estep.bfactor(pars=pars[[g]], tabdata=Data$tabdatalong, freq=Data$Freq[[g]],
                                             Theta=Theta, prior=prior[[g]],
                                             Priorbetween=Priorbetween[[g]], specific=specific, sitems=sitems,
-                                            itemloc=itemloc, CUSTOM.IND=list$CUSTOM.IND)
+                                            itemloc=itemloc, CUSTOM.IND=list$CUSTOM.IND, omp_threads=1L)
             } else {
                 rlist[[g]] <- Estep.mirt(pars=pars[[g]], tabdata=Data$tabdatalong, freq=Data$Freq[[g]],
                                          CUSTOM.IND=list$CUSTOM.IND, Theta=Theta,
-                                         prior=Prior[[g]], itemloc=itemloc, full=full)
+                                         prior=Prior[[g]], itemloc=itemloc, full=full, omp_threads=1L)
             }
         }
         for(g in seq_len(ngroups)){
@@ -177,6 +177,22 @@ SE.simple <- function(PrepList, ESTIMATE, Theta, constrain, Ls, N, type,
         least one of the supplied items. Information matrix/standard errors not computed', call.=FALSE)
         return(ESTIMATE)
     }
+    if(type != 'Louis'){
+        Iprior <- matrix(0, nrow(Igrad), ncol(Igrad))
+        ind1 <- 1L
+        for(group in seq_len(length(pars))){
+            for (i in seq_len(length(pars[[group]]))){
+                np <- length(pars[[group]][[i]]@par)
+                deriv <- DerivativePriors(x=pars[[group]][[i]], grad=numeric(np),
+                                          hess=matrix(0, np, np))
+                ind2 <- ind1 + np - 1L
+                Iprior[ind1:ind2, ind1:ind2] <- deriv$hess
+                ind1 <- ind2 + 1L
+            }
+        }
+        Iprior <- -updateHess(Iprior, L=Ls$L)
+        Iprior <- Iprior[ESTIMATE$estindex_unique, ESTIMATE$estindex_unique]
+    }
     Igrad <- updateHess(Igrad, L=Ls$L)
     IgradP <- updateHess(IgradP, L=Ls$L)
     Igrad <- Igrad[ESTIMATE$estindex_unique, ESTIMATE$estindex_unique]
@@ -185,13 +201,13 @@ SE.simple <- function(PrepList, ESTIMATE, Theta, constrain, Ls, N, type,
     if(type == 'Louis'){
         info <- -Ihess - IgradP + Igrad
     } else if(type == 'crossprod'){
-        info <- Igrad
+        info <- Igrad + Iprior
     } else if(type == 'sandwich.Louis'){
         tmp <- solve(-Ihess - IgradP + Igrad)
-        info <- solve(tmp %*% Igrad %*% tmp)
+        info <- solve(tmp %*% (Igrad + Iprior) %*% tmp)
     } else if(type == 'sandwich'){
         tmp <- -solve(ESTIMATE$hess)
-        info <- solve(tmp %*% Igrad %*% tmp)
+        info <- solve(tmp %*% (Igrad + Iprior) %*% tmp)
     }
     colnames(info) <- rownames(info) <- names(ESTIMATE$correction)
     ESTIMATE <- loadESTIMATEinfo(info=info, ESTIMATE=ESTIMATE, constrain=constrain, warn=warn)
@@ -202,7 +218,8 @@ SE.Oakes <- function(pick, pars, L, constrain, est, shortpars, longpars,
                      gTheta, list, ngroups, J, dentype, sitems,
                      rlist, full, Data, specific, itemloc, CUSTOM.IND,
                      delta, prior, Prior, Priorbetween, nfact, mixtype,
-                     PrepList, ANY.PRIOR, DERIV, SLOW.IND, Norder, zero_g = NULL){
+                     PrepList, ANY.PRIOR, DERIV, SLOW.IND, Norder, omp_threads,
+                     zero_g = NULL){
     r <- 1L
     Richardson <- if(Norder > 2L) TRUE else FALSE
     if(Richardson){
@@ -236,7 +253,8 @@ SE.Oakes <- function(pick, pars, L, constrain, est, shortpars, longpars,
             Elist <- Estep(pars=pars, Data=Data, gTheta=gTheta, prior=prior, Prior=Prior,
                            Priorbetween=Priorbetween, specific=specific, sitems=sitems,
                            ngroups=ngroups, itemloc=itemloc, CUSTOM.IND=CUSTOM.IND,
-                           dentype=dentype, rlist=rlist, full=full, Etable=list$Etable)
+                           dentype=dentype, rlist=rlist, full=full, Etable=list$Etable,
+                           omp_threads=omp_threads)
             rlist <- Elist$rlist
             longpars <- longpars_old
             pars <- reloadPars(longpars=longpars, pars=pars,
@@ -298,7 +316,7 @@ SE.Oakes <- function(pick, pars, L, constrain, est, shortpars, longpars,
 }
 
 SE.Fisher <- function(PrepList, ESTIMATE, Theta, constrain, Ls, N, CUSTOM.IND, SLOW.IND,
-                      warn, Data, full){
+                      warn, Data, full, omp_threads){
     pars <- ESTIMATE$pars
     itemloc <- PrepList[[1L]]$itemloc
     ngroups <- length(pars)
@@ -324,18 +342,17 @@ SE.Fisher <- function(PrepList, ESTIMATE, Theta, constrain, Ls, N, CUSTOM.IND, S
         for(j in seq_len(length(uniq)))
             tabdata[,itemloc[i] + j - 1L] <- as.integer(tabdata2[,i] == uniq[j])
     }
-    collectL <- numeric(nrow(tabdata))
-    collectgrad <- matrix(0, nrow(tabdata), length(DX))
     gTheta <- vector('list', ngroups)
     for(g in seq_len(ngroups)){
         PrepList[[g]]$tabdata <- tabdata
         gTheta[[g]] <- Theta
     }
+    info <- 0
     for(pat in seq_len(nrow(tabdata))){
         for(g in seq_len(ngroups)){
             gtabdata <- PrepList[[g]]$tabdata[pat, , drop=FALSE]
             rlist <- Estep.mirt(pars=pars[[g]], tabdata=gtabdata, freq=1L, CUSTOM.IND=CUSTOM.IND, full=full,
-                                Theta=Theta, prior=Prior[[g]], itemloc=itemloc, deriv=TRUE)
+                                Theta=Theta, prior=Prior[[g]], itemloc=itemloc, deriv=TRUE, omp_threads=omp_threads)
             for(i in seq_len(nitems)){
                 tmp <- c(itemloc[i]:(itemloc[i+1L] - 1L))
                 pars[[g]][[i]]@dat <- rlist$r1[, tmp]
@@ -344,11 +361,9 @@ SE.Fisher <- function(PrepList, ESTIMATE, Theta, constrain, Ls, N, CUSTOM.IND, S
             pars[[g]][[nitems + 1L]]@rr <- rowSums(rlist$r1)
         }
         DX <- .Call('computeDPars', pars, gTheta, matrix(0L, 1L, nitems), ncol(L), 0L, 0L, 1L, TRUE)$grad
-        collectL[pat] <- rlist$expected
-        DX[DX != 0] <-  rlist$expected - exp(log(rlist$expected) - DX[DX != 0])
-        collectgrad[pat, ] <- DX
+        info <- info + DX %*% t(DX) * rlist$expected
     }
-    info <- N * t(collectgrad) %*% diag(1/collectL) %*% collectgrad
+    info <- N * info
     info <- updateHess(info, L=Ls$L)[ESTIMATE$estindex_unique, ESTIMATE$estindex_unique]
     colnames(info) <- rownames(info) <- names(ESTIMATE$correction)
     ESTIMATE <- loadESTIMATEinfo(info=info, ESTIMATE=ESTIMATE, constrain=constrain, warn=warn)

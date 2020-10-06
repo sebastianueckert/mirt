@@ -4,15 +4,35 @@
 \alias{fscores}
 \title{Compute factor score estimates (a.k.a, ability estimates, latent trait estimates, etc)}
 \usage{
-fscores(object, method = "EAP", full.scores = TRUE,
-  rotate = "oblimin", Target = NULL, response.pattern = NULL,
-  append_response.pattern = TRUE, na.rm = FALSE, plausible.draws = 0,
-  plausible.type = "normal", quadpts = NULL, returnER = FALSE,
-  return.acov = FALSE, mean = NULL, cov = NULL, verbose = TRUE,
-  full.scores.SE = FALSE, theta_lim = c(-6, 6), MI = 0,
-  use_dentype_estimate = FALSE, QMC = FALSE, custom_den = NULL,
-  custom_theta = NULL, min_expected = 1, converge_info = FALSE,
-  max_theta = 20, start = NULL, ...)
+fscores(
+  object,
+  method = "EAP",
+  full.scores = TRUE,
+  rotate = "oblimin",
+  Target = NULL,
+  response.pattern = NULL,
+  append_response.pattern = TRUE,
+  na.rm = FALSE,
+  plausible.draws = 0,
+  plausible.type = "normal",
+  quadpts = NULL,
+  returnER = FALSE,
+  return.acov = FALSE,
+  mean = NULL,
+  cov = NULL,
+  verbose = TRUE,
+  full.scores.SE = FALSE,
+  theta_lim = c(-6, 6),
+  MI = 0,
+  use_dentype_estimate = FALSE,
+  QMC = FALSE,
+  custom_den = NULL,
+  custom_theta = NULL,
+  min_expected = 1,
+  max_theta = 20,
+  start = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{a computed model object of class \code{SingleGroupClass},
@@ -115,11 +135,6 @@ each column corresponds to the respective dimension in the model}
 \item{min_expected}{when computing goodness of fit tests when \code{method = 'EAPsum'}, this value is used
 to collapse across the conditioned total scores until the expected values are greater than this value. Note
 that this only affect the goodness of fit tests and not the returned EAP for sum scores table}
-
-\item{converge_info}{logical; include a column in the return objects containing a logical for each
-response pattern indicating whether a maximum value was found (not relevant non-iterative methods,
-such as EAP and EAPsum). Value is a reflection of the \code{code} element from \code{\link{nlm}}
-(e.g., 1 indicates convergence)}
 
 \item{max_theta}{the maximum/minimum value any given factor score estimate will achieve using
 any modal estimator method (e.g., MAP, WLE, ML)}

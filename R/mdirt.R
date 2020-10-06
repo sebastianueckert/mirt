@@ -185,10 +185,11 @@
 #' # generate some suitable data for a two dimensional DINA application
 #' #     (first columns are intercepts)
 #' set.seed(1)
-#' Theta <- expand.table(matrix(c(1,0,0,0, 200,
-#'                                1,1,0,0, 200,
-#'                                1,0,1,0, 100,
-#'                                1,1,1,1, 500), 4, 5, byrow=TRUE))
+#' Theta <- expand.table(matrix(c(1,0,0,0,
+#'                                1,1,0,0,
+#'                                1,0,1,0,
+#'                                1,1,1,1), 4, 4, byrow=TRUE),
+#'                       freq = c(200,200,100,500))
 #' a <- matrix(c(rnorm(15, -1.5, .5), rlnorm(5, .2, .3), numeric(15), rlnorm(5, .2, .3),
 #'               numeric(15), rlnorm(5, .2, .3)), 15, 4)
 #'
@@ -334,6 +335,7 @@ mdirt <- function(data, model, customTheta = NULL, structure = NULL, item.Q = NU
     if(is.null(group)) group <- rep('all', nrow(data))
     if((is(model, 'mirt.model') || is.character(model)) && is.null(technical$customTheta))
         stop('customTheta input required when using a mirt.model type input')
+    technical$omp <- FALSE
     mods <- myLapply(1:nruns, function(x, ...) return(ESTIMATION(...)), method=method,
                      latent.regression=latent.regression, structure=structure,
                      data=data, model=model, group=group, itemtype=itemtype, optimizer=optimizer,

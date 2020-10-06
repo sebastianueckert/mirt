@@ -4,11 +4,26 @@
 \alias{mdirt}
 \title{Multidimensional discrete item response theory}
 \usage{
-mdirt(data, model, customTheta = NULL, structure = NULL,
-  item.Q = NULL, nruns = 1, method = "EM", covdata = NULL,
-  formula = NULL, itemtype = "lca", optimizer = "nlminb",
-  return_max = TRUE, group = NULL, GenRandomPars = FALSE,
-  verbose = TRUE, pars = NULL, technical = list(), ...)
+mdirt(
+  data,
+  model,
+  customTheta = NULL,
+  structure = NULL,
+  item.Q = NULL,
+  nruns = 1,
+  method = "EM",
+  covdata = NULL,
+  formula = NULL,
+  itemtype = "lca",
+  optimizer = "nlminb",
+  return_max = TRUE,
+  group = NULL,
+  GenRandomPars = FALSE,
+  verbose = TRUE,
+  pars = NULL,
+  technical = list(),
+  ...
+)
 }
 \arguments{
 \item{data}{a \code{matrix} or \code{data.frame} that consists of
@@ -203,10 +218,11 @@ summary(mod_located)
 # generate some suitable data for a two dimensional DINA application
 #     (first columns are intercepts)
 set.seed(1)
-Theta <- expand.table(matrix(c(1,0,0,0, 200,
-                               1,1,0,0, 200,
-                               1,0,1,0, 100,
-                               1,1,1,1, 500), 4, 5, byrow=TRUE))
+Theta <- expand.table(matrix(c(1,0,0,0,
+                               1,1,0,0,
+                               1,0,1,0,
+                               1,1,1,1), 4, 4, byrow=TRUE),
+                      freq = c(200,200,100,500))
 a <- matrix(c(rnorm(15, -1.5, .5), rlnorm(5, .2, .3), numeric(15), rlnorm(5, .2, .3),
               numeric(15), rlnorm(5, .2, .3)), 15, 4)
 

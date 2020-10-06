@@ -5,13 +5,25 @@
 \alias{plot.itemGAM}
 \title{Parametric smoothed regression lines for item response probability functions}
 \usage{
-itemGAM(item, Theta, formula = resp ~ s(Theta, k = 10), CI = 0.95,
-  theta_lim = c(-3, 3), return.models = FALSE, ...)
+itemGAM(
+  item,
+  Theta,
+  formula = resp ~ s(Theta, k = 10),
+  CI = 0.95,
+  theta_lim = c(-3, 3),
+  return.models = FALSE,
+  ...
+)
 
-\method{plot}{itemGAM}(x, y = NULL, par.strip.text = list(cex = 0.7),
-  par.settings = list(strip.background = list(col = "#9ECAE1"),
-  strip.border = list(col = "black")), auto.key = list(space = "right",
-  points = FALSE, lines = TRUE), ...)
+\method{plot}{itemGAM}(
+  x,
+  y = NULL,
+  par.strip.text = list(cex = 0.7),
+  par.settings = list(strip.background = list(col = "#9ECAE1"), strip.border = list(col
+    = "black")),
+  auto.key = list(space = "right", points = FALSE, lines = TRUE),
+  ...
+)
 }
 \arguments{
 \item{item}{a single poorly fitting item to be investigated. Can be a vector or matrix}
@@ -163,6 +175,5 @@ Package for the R Environment. \emph{Journal of Statistical Software, 48}(6), 1-
 \author{
 Phil Chalmers \email{rphilip.chalmers@gmail.com}
 }
-\keyword{fit,}
+\keyword{fit}
 \keyword{item}
-\keyword{traceline}

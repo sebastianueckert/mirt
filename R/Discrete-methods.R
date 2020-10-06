@@ -24,6 +24,8 @@ setMethod(
         cat('\nLatent density type:', 'discrete')
         # cat('\nNumber of classes quadrature:', x@Options$quadpts)
         cat('\n')
+        if(method == 'MHRM')
+            cat("Average MH acceptance ratio(s):", paste0(round(x@OptimInfo$aveAR,3), collapse=', '), "\n")
         if(!is.na(x@OptimInfo$secondordertest)){
             cat("\nInformation matrix estimated with method:", x@Options$SE.type)
             cat('\nSecond-order test: model ', if(!x@OptimInfo$secondordertest)
@@ -154,6 +156,10 @@ setMethod(
         }, so=so, names=names)
         mlt <- do.call(rbind, mlt)
         mlt$item <- factor(mlt$item, levels = colnames(x@Data$data)[which.items])
+        mlt <- within(mlt, {
+            class <- factor(class)
+            cat <- factor(cat)
+        })
         if(profile){
             if(all(x@Data$K == 2L)){
                 mlt <- mlt[mlt$cat == 'cat2', ]

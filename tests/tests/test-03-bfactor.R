@@ -13,14 +13,14 @@ test_that('dich data', {
                  tolerance = 1e-2)
     fs <- suppressWarnings(fscores(mod1, verbose = FALSE, full.scores=FALSE))
     expect_is(fs, 'matrix')
-    expect_equal(fs[1:6,'F1'], c(-1.3732391, -0.8030791, -1.4868364, -1.4993907, -1.7456934, -1.4884274), tolerance = 1e-2)
+    expect_equal(fs[1:6,'G'], c(-1.3732391, -0.8030791, -1.4868364, -1.4993907, -1.7456934, -1.4884274), tolerance = 1e-2)
     cof <- coef(mod1, verbose = FALSE)
     expect_is(cof, 'list')
     sum <- summary(mod1, verbose = FALSE)
     expect_is(sum, 'list')
     fs <- suppressWarnings(fscores(mod1, method = 'EAPsum', verbose = FALSE, full.scores=FALSE))
-    expect_equal(fs[1:3,'Theta.1'], c(-3.086119, -3.028427, -2.959479), tolerance = 1e-4)
-    expect_equal(fs[1:3,'Theta.2'], c(-1.3570059, -1.0763476, -0.7813406), tolerance = 1e-4)
+    expect_equal(fs[1:3,'G'], c(-3.086119, -3.028427, -2.959479), tolerance = 1e-4)
+    expect_equal(fs[1:3,'S1'], c(-1.3570059, -1.0763476, -0.7813406), tolerance = 1e-4)
     fit <- suppressWarnings(M2(mod1))
     expect_equal(fit$M2, 553.6781, tolerance = 1e-2)
     expect_equal(fit$df, 432, tolerance = 1e-2)
@@ -44,46 +44,52 @@ test_that('dich data', {
     expect_equal(extract.mirt(nestmod, 'logLik'), -11626.06, tolerance = 1e-4)
 
     #simulate data
-    set.seed(1234)
-    a <- matrix(c(
-        1,0.5,NA,
-        1,0.5,NA,
-        1,0.5,NA,
-        1,0.5,NA,
-        1,0.5,NA,
-        1,0.5,NA,
-        1,0.5,NA,
-        1,NA,0.5,
-        1,NA,0.5,
-        1,NA,0.5,
-        1,NA,0.5,
-        1,NA,0.5,
-        1,NA,0.5,
-        1,NA,0.5),ncol=3,byrow=TRUE)
+    if(FALSE){
+        rm(list=ls())
 
-    d <- matrix(c(
-        -1.0,NA,NA,
-        -1.5,NA,NA,
-        1.5,NA,NA,
-        0.0,NA,NA,
-        0.0,-1.0,1.5,
-        0.0,2.0,-0.5,
-        3.0,2.0,-0.5,
-        3.0,2.0,-0.5,
-        2.5,1.0,-1,
-        2.0,0.0,NA,
-        -1.0,NA,NA,
-        -1.5,NA,NA,
-        1.5,NA,NA,
-        0.0,NA,NA),ncol=3,byrow=TRUE)
+        set.seed(1234)
+        a <- matrix(c(
+            1,0.5,NA,
+            1,0.5,NA,
+            1,0.5,NA,
+            1,0.5,NA,
+            1,0.5,NA,
+            1,0.5,NA,
+            1,0.5,NA,
+            1,NA,0.5,
+            1,NA,0.5,
+            1,NA,0.5,
+            1,NA,0.5,
+            1,NA,0.5,
+            1,NA,0.5,
+            1,NA,0.5),ncol=3,byrow=TRUE)
 
-    nominal <- matrix(NA, nrow(d), ncol(d))
-    nominal[5, ] <- c(0,1.2,2)
-    sigma <- diag(3)
-    set.seed(1234)
-    items <- itemtype <- c(rep('dich', 4), 'nominal', 'gpcm', rep('graded',4),rep('dich', 4))
-    dataset <- simdata(a,d,3000,itemtype, sigma=sigma, nominal=nominal)
+        d <- matrix(c(
+            -1.0,NA,NA,
+            -1.5,NA,NA,
+            1.5,NA,NA,
+            0.0,NA,NA,
+            0.0,-1.0,1.5,
+            0.0,2.0,-0.5,
+            3.0,2.0,-0.5,
+            3.0,2.0,-0.5,
+            2.5,1.0,-1,
+            2.0,0.0,NA,
+            -1.0,NA,NA,
+            -1.5,NA,NA,
+            1.5,NA,NA,
+            0.0,NA,NA),ncol=3,byrow=TRUE)
 
+        nominal <- matrix(NA, nrow(d), ncol(d))
+        nominal[5, ] <- c(0,1.2,2)
+        sigma <- diag(3)
+        set.seed(1234)
+        items <- itemtype <- c(rep('dich', 4), 'nominal', 'gpcm', rep('graded',4),rep('dich', 4))
+        dataset <- simdata(a,d,3000,itemtype, sigma=sigma, nominal=nominal)
+
+        save(dataset, items, file = 'tests/tests/testdata/bfactor1.rds')
+    }
+    load('testdata/bfactor1.rds')
     specific <- c(rep(1,7),rep(2,7))
     items[items == 'dich'] <- '2PL'
     simmod <- bfactor(dataset, specific, itemtype = items, verbose=FALSE, TOL=3e-3)
@@ -102,7 +108,7 @@ test_that('dich data', {
     expect_equal(cfs, c(1.0905,-0.9601,1.0223,-0.0369,-1.4489,1.2195,-0.0022,1.4959,1.092,-0.014,0.0848,1.2755,0.4096,1.0859,2,-0.8057,1.6183,1.2266,-0.2,2,2.0288,-0.5539,1.0768,0.333,2.9025,1.9204,-0.5287,0.9394,0.6695,3.0785,2.0591,-0.5033,0.8864,0.7024,2.5682,1.1235,-0.9231,0.8554,0.6607,1.9864,-0.0067,0.9996,0.6903,-0.9545,0.9342,0.8017,-1.4291,0.9083,0.6546,1.4906,0.932,0.7122,0.0501),
                  tolerance = 1e-2)
     fs <- fscores(simmod, verbose = FALSE, full.scores=FALSE)
-    expect_true(mirt:::closeEnough(fs[1:6,'F1'] - c(-2.6461, -2.0541, -2.3838, -2.4061, -1.7492, -1.8682), -1e-2, 1e-2))
+    expect_true(mirt:::closeEnough(fs[1:6,'G'] - c(-2.6461, -2.0541, -2.3838, -2.4061, -1.7492, -1.8682), -1e-2, 1e-2))
     expect_is(fs, 'matrix')
 
     res <- residuals(simmod, verbose = FALSE, QMC=TRUE)
@@ -112,32 +118,37 @@ test_that('dich data', {
     expect_is(sum, 'list')
 
     #two-tier
-    set.seed(1234)
-    a <- matrix(c(
-        0,1,0.5,NA,NA,
-        0,1,0.5,NA,NA,
-        0,1,0.5,NA,NA,
-        0,1,0.5,NA,NA,
-        0,1,0.5,NA,NA,
-        0,1,NA,0.5,NA,
-        0,1,NA,0.5,NA,
-        0,1,NA,0.5,NA,
-        1,0,NA,0.5,NA,
-        1,0,NA,0.5,NA,
-        1,0,NA,0.5,NA,
-        1,0,NA,NA,0.5,
-        1,0,NA,NA,0.5,
-        1,0,NA,NA,0.5,
-        1,0,NA,NA,0.5,
-        1,0,NA,NA,0.5),ncol=5,byrow=TRUE)
+    if(FALSE){
+        rm(list=ls())
+        set.seed(1234)
+        a <- matrix(c(
+            0,1,0.5,NA,NA,
+            0,1,0.5,NA,NA,
+            0,1,0.5,NA,NA,
+            0,1,0.5,NA,NA,
+            0,1,0.5,NA,NA,
+            0,1,NA,0.5,NA,
+            0,1,NA,0.5,NA,
+            0,1,NA,0.5,NA,
+            1,0,NA,0.5,NA,
+            1,0,NA,0.5,NA,
+            1,0,NA,0.5,NA,
+            1,0,NA,NA,0.5,
+            1,0,NA,NA,0.5,
+            1,0,NA,NA,0.5,
+            1,0,NA,NA,0.5,
+            1,0,NA,NA,0.5),ncol=5,byrow=TRUE)
 
-    d <- matrix(rnorm(16))
-    items <- rep('dich', 16)
+        d <- matrix(rnorm(16))
+        items <- rep('dich', 16)
 
-    sigma <- diag(5)
-    sigma[1,2] <- sigma[2,1] <- .7
-    dataset <- simdata(a,d,2000,itemtype=items,sigma=sigma)
+        sigma <- diag(5)
+        sigma[1,2] <- sigma[2,1] <- .7
+        dataset <- simdata(a,d,2000,itemtype=items,sigma=sigma)
 
+        save(dataset, items, file = 'tests/tests/testdata/bfactor2.rds')
+    }
+    load('testdata/bfactor2.rds')
     specific <- c(rep(1,5),rep(2,6),rep(3,5))
     model <- mirt.model('
         G1 = 1-8

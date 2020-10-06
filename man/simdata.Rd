@@ -4,11 +4,27 @@
 \alias{simdata}
 \title{Simulate response patterns}
 \usage{
-simdata(a, d, N, itemtype, sigma = NULL, mu = NULL, guess = 0,
-  upper = 1, nominal = NULL, t = NULL, Theta = NULL,
-  gpcm_mats = list(), returnList = FALSE, model = NULL,
-  equal.K = TRUE, which.items = NULL, mins = 0, lca_cats = NULL,
-  prob.list = NULL)
+simdata(
+  a,
+  d,
+  N,
+  itemtype,
+  sigma = NULL,
+  mu = NULL,
+  guess = 0,
+  upper = 1,
+  nominal = NULL,
+  t = NULL,
+  Theta = NULL,
+  gpcm_mats = list(),
+  returnList = FALSE,
+  model = NULL,
+  equal.K = TRUE,
+  which.items = NULL,
+  mins = 0,
+  lca_cats = NULL,
+  prob.list = NULL
+)
 }
 \arguments{
 \item{a}{a matrix/vector of slope parameters. If slopes are to be constrained to
@@ -76,7 +92,9 @@ latent trait matrix \code{Theta}? Default is FALSE}
 
 \item{model}{a single group object, typically returned by functions such as \code{\link{mirt}} or
 \code{\link{bfactor}}. Supplying this will render all other parameter elements (excluding the
-\code{Theta}, \code{N}, \code{mu}, and \code{sigma} inputs) redundant (unless explicitly provided)}
+\code{Theta}, \code{N}, \code{mu}, and \code{sigma} inputs) redundant (unless explicitly provided).
+This input can therefore be used to create parametric bootstrap data whereby plausible data implied by the
+estimated model can be generated and evaluated}
 
 \item{equal.K}{logical; when a \code{model} input is supplied, should the generated data contain the same
 number of categories as the original data indicated by \code{extract.mirt(model, 'K')}? Default is TRUE,

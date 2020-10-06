@@ -4,13 +4,25 @@
 \alias{itemplot}
 \title{Displays item surface and information plots}
 \usage{
-itemplot(object, item, type = "trace", degrees = 45, CE = FALSE,
-  CEalpha = 0.05, CEdraws = 1000, drop.zeros = FALSE,
-  theta_lim = c(-6, 6), shiny = FALSE, rot = list(xaxis = -70, yaxis
-  = 30, zaxis = 10), par.strip.text = list(cex = 0.7), npts = 200,
-  par.settings = list(strip.background = list(col = "#9ECAE1"),
-  strip.border = list(col = "black")), auto.key = list(space = "right",
-  points = FALSE, lines = TRUE), ...)
+itemplot(
+  object,
+  item,
+  type = "trace",
+  degrees = 45,
+  CE = FALSE,
+  CEalpha = 0.05,
+  CEdraws = 1000,
+  drop.zeros = FALSE,
+  theta_lim = c(-6, 6),
+  shiny = FALSE,
+  rot = list(xaxis = -70, yaxis = 30, zaxis = 10),
+  par.strip.text = list(cex = 0.7),
+  npts = 200,
+  par.settings = list(strip.background = list(col = "#9ECAE1"), strip.border = list(col
+    = "black")),
+  auto.key = list(space = "right", points = FALSE, lines = TRUE),
+  ...
+)
 }
 \arguments{
 \item{object}{a computed model object of class \code{SingleGroupClass}
@@ -103,8 +115,8 @@ bwtheme <- standard.theme("pdf", color=FALSE)
 plot(pmod, type='trace', par.settings=bwtheme)
 itemplot(pmod, 1, type = 'trace', par.settings=bwtheme)
 
+# infoSE plot
 itemplot(pmod, 1, type = 'infoSE')
-update(trellis.last.object(), par.settings = bwtheme)
 
 # uncomment to run interactive shiny applet
 # itemplot(shiny = TRUE)

@@ -60,6 +60,8 @@ setMethod(
                "EHW" = 'Empirical histogram (scaled)',
                x@Options$dentype)
         cat('Latent density type:', dentype, '\n')
+        if(method == 'MHRM')
+            cat("Average MH acceptance ratio(s):", paste0(round(x@OptimInfo$aveAR,3), collapse=', '), "\n")
         if(!is.na(x@OptimInfo$secondordertest)){
             cat("\nInformation matrix estimated with method:", x@Options$SE.type)
             cat('\nSecond-order test: model ', if(!x@OptimInfo$secondordertest)
@@ -396,7 +398,7 @@ setMethod(
                     if(object@ParObjects$pars[[J+1L]]@dentype == "mixture")
                         covs[lower.tri(covs, TRUE)] <- allPars$GroupPars[-c(seq_len(nfact), length(allPars$GroupPars))]
                     else covs[lower.tri(covs, TRUE)] <- allPars$GroupPars[-seq_len(nfact)]
-                    covs[upper.tri(covs, FALSE)] <- covs[lower.tri(covs, FALSE)]
+                    covs <- makeSymMat(covs)
                     colnames(covs) <- rownames(covs) <- names(means) <- object@Model$factorNames[seq_len(nfact)]
                     allPars <- list(items=items, means=means, cov=covs)
                 }
@@ -588,6 +590,8 @@ setMethod(
 #' @param suppress a numeric value indicating which parameter local dependency combinations
 #'   to flag as being too high. Absolute values for the standardized estimates greater than
 #'   this value will be returned, while all values less than this value will be set to NA
+#' @param technical list of technical arguments when models are re-estimated (see \code{\link{mirt}}
+#'   for details)
 #' @param ... additional arguments to be passed to \code{fscores()}
 #'
 #' @name residuals-method
@@ -677,7 +681,8 @@ setMethod(
     signature = signature(object = 'SingleGroupClass'),
     definition = function(object, type = 'LD', df.p = FALSE, full.scores = FALSE, QMC = FALSE,
                           printvalue = NULL, tables = FALSE, verbose = TRUE, Theta = NULL,
-                          suppress = 1, theta_lim = c(-6, 6), quadpts = NULL, fold = TRUE, ...)
+                          suppress = 1, theta_lim = c(-6, 6), quadpts = NULL, fold = TRUE,
+                          technical = list(), ...)
     {
         dots <- list(...)
         if(.hasSlot(object@Model$lrPars, 'beta'))
@@ -754,11 +759,11 @@ setMethod(
                         if(calcG2){
                             tmp <- tab
                             tmp[tab == 0] <- NA
-                            res[j,i] <- 2 * sum(tmp * log(tmp/Etab), na.rm=TRUE) * sign(s)
+                            res[j,i] <- 2 * sum(tmp * log(tmp/Etab), na.rm=TRUE)
                         } else {
-                            res[j,i] <- sum(((tab - Etab)^2)/Etab) * sign(s)
+                            res[j,i] <- sum(((tab - Etab)^2)/Etab)
                         }
-                        res[i,j] <- sign(res[j,i]) * sqrt( abs(res[j,i]) / (NN * min(c(K[i],K[j]) - 1L)))
+                        res[i,j] <- sign(s) * sqrt( abs(res[j,i]) / (NN * min(c(K[i],K[j]) - 1L)))
                         df[i,j] <- pchisq(abs(res[j,i]), df=df[j,i], lower.tail=FALSE)
                         if(tables){
                             tmp <- paste0(itemnames[i], '_', itemnames[j])
@@ -837,7 +842,7 @@ setMethod(
             nfact <- extract.mirt(object, 'nfact')
             tmpdat <- matrix(0, nrow=2, ncol=nitems)
             colnames(tmpdat) <- colnames(tabdata)
-            large <- mirt(tmpdat, nfact, itemtype=itemtype, pars=sv, TOL=NaN, large=TRUE,
+            large <- mirt(tmpdat, nfact, itemtype=itemtype, pars=sv, TOL=NaN, large='return',
                                       technical = list(customK=K))
             large$tabdata <- poly2dich(tabdata)
             large$Freq$all <- rep(1L, nrow(tabdata))
@@ -894,13 +899,15 @@ setMethod(
             nfact <- extract.mirt(object, 'nfact')
             stopifnot(nfact == 1L)
             nitems <- extract.mirt(object, 'nitems')
-            as_drop <- myLapply(seq_len(nitems), function(item, mod, ...){
+            technical$omp <- FALSE
+            as_drop <- myLapply(seq_len(nitems), function(item, mod, technical, ...){
                 itemtype <- extract.mirt(mod, 'itemtype')[-item]
                 tmpdat <- extract.mirt(mod, 'data')[,-item]
-                tmpmod <- mirt(tmpdat, 1L, itemtype=itemtype, SE=TRUE, verbose=FALSE, ...)
+                tmpmod <- mirt(tmpdat, 1L, itemtype=itemtype, SE=TRUE, verbose=FALSE,
+                               technical=technical, ...)
                 ret <- sapply(coef(tmpmod, printSE=TRUE)[1:ncol(tmpdat)], function(x) x[1L:2L, 'a1'])
                 ret
-            }, mod=object, ...)
+            }, mod=object, technical=technical, ...)
             as <- sapply(coef(object)[1:nitems], function(x) x[1L, 'a1'])
             retmat <- matrix(NA, nitems, nitems)
             colnames(retmat) <- rownames(retmat) <- extract.mirt(object, 'itemnames')
@@ -947,6 +954,8 @@ setMethod(
 #'   \code{dentype = 'Davidian-#'} was used then the type \code{'Davidian'}
 #'   will also be available to generate the curve estimates at the quadrature
 #'   nodes used during estimation
+#' @param drop2 logical; where appropriate, for dichotomous response items drop the lowest category
+#'   and provide information pertaining only to the second response option?
 #' @param degrees numeric value ranging from 0 to 90 used in \code{plot} to compute angle
 #'   for information-based plots with respect to the first dimension.
 #'   If a vector is used then a bubble plot is created with the summed information across the angles specified
@@ -980,6 +989,7 @@ setMethod(
 #' @param ... additional arguments to be passed to lattice
 #'
 #' @name plot-method
+#' @export
 #' @references
 #' Chalmers, R., P. (2012). mirt: A Multidimensional Item Response Theory
 #' Package for the R Environment. \emph{Journal of Statistical Software, 48}(6), 1-29.
@@ -1030,7 +1040,7 @@ setMethod(
 setMethod(
     f = "plot",
     signature = signature(x = 'SingleGroupClass', y = 'missing'),
-    definition = function(x, y, type = 'score', npts = 200, degrees = 45,
+    definition = function(x, y, type = 'score', npts = 200, drop2 = TRUE, degrees = 45,
                           theta_lim = c(-6,6), which.items = 1:extract.mirt(x, 'nitems'),
                           MI = 0, CI = .95, rot = list(xaxis = -70, yaxis = 30, zaxis = 10),
                           facet_items = TRUE, main = NULL,
@@ -1060,7 +1070,7 @@ setMethod(
         if(length(degrees) > ncol(ThetaFull)) type <- 'infoangle'
         if(length(degrees) == 1L) degrees <- rep(degrees, ncol(ThetaFull))
         info <- numeric(nrow(ThetaFull))
-        if(type %in% c('info', 'infocontour', 'rxx', 'SE', 'infoSE', 'infotrace'))
+        if(type %in% c('info', 'infocontour', 'rxx', 'SE', 'infoSE'))
             info <- testinfo(x, ThetaFull, degrees = degrees, which.items=which.items)
         if(type == 'infoangle'){
             for(i in seq_len(length(degrees)))
@@ -1214,6 +1224,63 @@ setMethod(
                                  zlab=expression(I(theta)), xlab=expression(theta[1]), ylab=expression(theta[2]),
                                  scales = list(arrows = FALSE), screen = rot, colorkey = colorkey, drape = drape,
                                  par.strip.text=par.strip.text, par.settings=par.settings, ...))
+            } else if(type == 'trace'){
+                if(is.null(main))
+                    main <- 'Item trace lines'
+                P <- vector('list', length(which.items))
+                names(P) <- colnames(x@Data$data)[which.items]
+                ind <- 1L
+                for(i in which.items){
+                    tmp <- probtrace(extract.item(x, i), ThetaFull)
+                    if(ncol(tmp) == 2L && drop2) tmp <- tmp[,2, drop=FALSE]
+                    tmp2 <- data.frame(P=as.numeric(tmp), cat=gl(ncol(tmp), k=nrow(ThetaFull),
+                                                                 labels=paste0('P', seq_len(ncol(tmp)))))
+                    P[[ind]] <- tmp2
+                    ind <- ind + 1L
+                }
+                nrs <- sapply(P, nrow)
+                Pstack <- do.call(rbind, P)
+                names <- c()
+                for(i in seq_len(length(nrs)))
+                    names <- c(names, rep(names(P)[i], nrs[i]))
+                plotobj <- data.frame(Pstack, item=names, Theta=ThetaFull)
+                plotobj$item <- factor(plotobj$item, levels = colnames(x@Data$data)[which.items])
+                return(wireframe(P ~ Theta.1 * Theta.2 | item, plotobj, zlim = c(-0.1,1.1), group=plotobj$cat,
+                                 zlab=expression(P(theta)), xlab=expression(theta[1]), ylab=expression(theta[2]),
+                                 scales = list(arrows = FALSE), screen = rot, colorkey = colorkey, drape = drape,
+                                 par.strip.text=par.strip.text, par.settings=par.settings, ...))
+            } else if(type == 'infotrace'){
+                if(is.null(main))
+                    main <- 'Item information trace lines'
+                I <- matrix(NA, nrow(Theta), J)
+                for(i in which.items)
+                    I[,i] <- iteminfo(extract.item(x, i), ThetaFull, degrees=degrees)
+                I <- t(na.omit(t(I)))
+                items <- rep(colnames(x@Data$data)[which.items], each=nrow(Theta))
+                plotobj <- data.frame(I = as.numeric(I), Theta=ThetaFull, item=items)
+                plotobj$item <- factor(plotobj$item, levels = colnames(x@Data$data)[which.items])
+                return(wireframe(I ~ Theta.1 * Theta.2 | item, plotobj, group=plotobj$cat,
+                                 zlab=expression(P(theta)), xlab=expression(theta[1]), ylab=expression(theta[2]),
+                                 scales = list(arrows = FALSE), screen = rot, colorkey = colorkey, drape = drape,
+                                 par.strip.text=par.strip.text, par.settings=par.settings, ...))
+            } else if(type == 'itemscore'){
+                if(is.null(main))
+                    main <- 'Expected item scoring function'
+                S <- vector('list', length(which.items))
+                names(S) <- colnames(x@Data$data)[which.items]
+                ind <- 1L
+                for(i in which.items){
+                    S[[ind]] <- expected.item(extract.item(x, i), ThetaFull, mins[i])
+                    ind <- ind + 1L
+                }
+                Sstack <- do.call(c, S)
+                names <- rep(names(S), each = nrow(ThetaFull))
+                plotobj <- data.frame(S=Sstack, item=names, Theta=ThetaFull)
+                plotobj$item <- factor(plotobj$item, levels = colnames(x@Data$data)[which.items])
+                return(wireframe(S ~ Theta.1 * Theta.2 | item, plotobj, group=plotobj$cat,
+                                 zlab=expression(P(theta)), xlab=expression(theta[1]), ylab=expression(theta[2]),
+                                 scales = list(arrows = FALSE), screen = rot, colorkey = colorkey, drape = drape,
+                                 par.strip.text=par.strip.text, par.settings=par.settings, ...))
             } else if(type == 'SEcontour'){
                 if(is.null(main)){
                     main <- "Test Standard Errors"
@@ -1338,6 +1405,8 @@ setMethod(
             } else if(type == 'infoSE'){
                 if(is.null(main))
                     main <- 'Test Information and Standard Errors'
+                par.settings <- c(par.settings,
+                                  lattice::simpleTheme(col = c("#0080ff",'red'), lty = 1:2))
                 obj1 <- xyplot(info~Theta, plt, type='l', main = main,
                                xlab = expression(theta), ylab=expression(I(theta)),
                                par.strip.text=par.strip.text, par.settings=par.settings)
@@ -1356,7 +1425,7 @@ setMethod(
                 ind <- 1L
                 for(i in which.items){
                     tmp <- probtrace(extract.item(x, i), ThetaFull)
-                    if(ncol(tmp) == 2L) tmp <- tmp[,2, drop=FALSE]
+                    if(ncol(tmp) == 2L && facet_items && drop2) tmp <- tmp[,2, drop=FALSE]
                     tmp2 <- data.frame(P=as.numeric(tmp), cat=gl(ncol(tmp), k=nrow(Theta),
                                                            labels=paste0('P', seq_len(ncol(tmp)))))
                     P[[ind]] <- tmp2
@@ -1375,7 +1444,7 @@ setMethod(
                                   auto.key = auto.key, type = 'l', main = main,
                                   par.strip.text=par.strip.text, par.settings=par.settings, ...))
                 } else {
-                    return(xyplot(P ~ Theta, plotobj, groups=plotobj$item, ylim = c(-0.1,1.1),
+                    return(xyplot(P ~ Theta|cat, plotobj, groups=plotobj$item, ylim = c(-0.1,1.1),
                                   xlab = expression(theta), ylab = expression(P(theta)),
                                   auto.key = auto.key, type = 'l', main = main,
                                   par.strip.text=par.strip.text, par.settings=par.settings, ...))
@@ -1685,7 +1754,7 @@ traditional2mirt <- function(x, cls, ncat){
         names(par) <- c('a1', paste0('d', 1:(length(par)-1)))
     } else if(cls %in% c('gpcm', 'gpcmIRT')){
         if(cls == 'gpcmIRT'){
-            x[-c(1, length(x))] <- x[-c(1, length(x))] + x[length(x)]
+            x[-c(1, length(x))] <- x[-c(1, length(x))] - x[length(x)]
             x <- x[-length(x)]
         }
         par <- c(x[1L], 0L:(ncat-1L), 0, x[-1L])
@@ -1693,8 +1762,10 @@ traditional2mirt <- function(x, cls, ncat){
         newd <- numeric(length(ds))
         for(i in length(ds):2L)
             newd[i] <- (ds[i] + ds[i-1L])
-        for(i in length(newd):3L)
-            newd[i] <- newd[i] + newd[i-2L]
+        for(i in length(newd):3L){
+            pick <- if(i %% 2 == 0) seq(2, i, by = 2) else seq(1, i, by = 2)
+            newd[i] <- sum(newd[pick])
+        }
         par <- c(par[1:(ncat+1)], newd)
         names(par) <- c('a1', paste0('ak', 0:(ncat-1)), paste0('d', 0:(ncat-1)))
     } else if(cls == 'nominal'){
